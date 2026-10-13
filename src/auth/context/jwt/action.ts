@@ -1,7 +1,4 @@
-import axios, { endpoints } from 'src/lib/axios';
-
-import { setSession } from './utils';
-import { JWT_STORAGE_KEY } from './constant';
+import { signInRequest, signOutRequest } from './session';
 
 // ----------------------------------------------------------------------
 
@@ -18,67 +15,22 @@ export type SignUpParams = {
 };
 
 /** **************************************
- * Sign in
+ * Sign in — the API sets the refresh-token cookie; the access token stays in memory.
  *************************************** */
 export const signInWithPassword = async ({ email, password }: SignInParams): Promise<void> => {
-  try {
-    const params = { email, password };
-
-    const res = await axios.post(endpoints.auth.signIn, params);
-
-    const { accessToken } = res.data;
-
-    if (!accessToken) {
-      throw new Error('Access token not found in response');
-    }
-
-    setSession(accessToken);
-  } catch (error) {
-    console.error('Error during sign in:', error);
-    throw error;
-  }
+  await signInRequest(email, password);
 };
 
 /** **************************************
- * Sign up
+ * Sign up — the portfolio has a single admin account, created by the API on first start.
  *************************************** */
-export const signUp = async ({
-  email,
-  password,
-  firstName,
-  lastName,
-}: SignUpParams): Promise<void> => {
-  const params = {
-    email,
-    password,
-    firstName,
-    lastName,
-  };
-
-  try {
-    const res = await axios.post(endpoints.auth.signUp, params);
-
-    const { accessToken } = res.data;
-
-    if (!accessToken) {
-      throw new Error('Access token not found in response');
-    }
-
-    sessionStorage.setItem(JWT_STORAGE_KEY, accessToken);
-  } catch (error) {
-    console.error('Error during sign up:', error);
-    throw error;
-  }
+export const signUp = async (_params: SignUpParams): Promise<void> => {
+  throw new Error('Sign-up is disabled. Use the admin account from BACKEND/.env.');
 };
 
 /** **************************************
- * Sign out
+ * Sign out — revokes the session on the server and clears the cookie.
  *************************************** */
 export const signOut = async (): Promise<void> => {
-  try {
-    await setSession(null);
-  } catch (error) {
-    console.error('Error during sign out:', error);
-    throw error;
-  }
+  await signOutRequest();
 };
