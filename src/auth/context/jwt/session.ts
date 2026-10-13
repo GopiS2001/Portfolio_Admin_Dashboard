@@ -28,6 +28,8 @@ const REASON_KEY = 'pf-auth-end-reason';
 let accessToken: string | null = null;
 let expiresAt = 0;
 let inflight: Promise<TokenResponse | null> | null = null;
+/** Set once this tab's session has ended, so background requests stop trying to refresh. */
+let ended = false;
 
 const endListeners = new Set<(reason: SessionEndReason) => void>();
 const startListeners = new Set<() => void>();
@@ -49,7 +51,11 @@ const authUrl = (path: string) => `${CONFIG.serverUrl}/api/auth/${path}`;
 
 export const getAccessToken = () => accessToken;
 
+/** True after the session ended in this tab (until the next sign-in or successful refresh). */
+export const isSessionEnded = () => ended;
+
 function setTokens(res: TokenResponse) {
+  ended = false;
   accessToken = res.accessToken;
   expiresAt = res.accessTokenExpiresAt;
 }
@@ -84,8 +90,11 @@ export function refreshSession(): Promise<TokenResponse | null> {
       })
       .catch((error) => {
         if (isStatus(error, 401)) {
-          // Only announce an end if this tab was signed in (not on a first visit)
-          if (accessToken !== null) endSession(errorCode(error) === 'SESSION_REVOKED' ? 'revoked' : 'expired');
+          // Announce an end if this tab was signed in, or if the cookie we sent belonged to a
+          // session that was revoked meanwhile — not on a first visit with no session at all
+          const revoked = errorCode(error) === 'SESSION_REVOKED';
+          if (accessToken !== null) endSession(revoked ? 'revoked' : 'expired');
+          else if (revoked) endSession('revoked', false);
           return null;
         }
         throw error;
@@ -100,6 +109,7 @@ export function refreshSession(): Promise<TokenResponse | null> {
 /** Returns a usable access token, refreshing first if it's missing or about to expire. */
 export async function getFreshAccessToken() {
   if (accessToken && Date.now() < expiresAt - REFRESH_MARGIN_MS) return accessToken;
+  if (!accessToken && ended) return null;
   const res = await refreshSession();
   return res?.accessToken ?? null;
 }
@@ -122,12 +132,15 @@ export async function signOutRequest() {
 /** Clears the in-memory token and tells the app (and other tabs) the session is over. */
 export function endSession(reason: SessionEndReason, broadcast = true) {
   const wasActive = accessToken !== null;
+  ended = true;
   accessToken = null;
   expiresAt = 0;
   if (reason !== 'signed-out') {
     try {
       sessionStorage.setItem(REASON_KEY, reason);
-    } catch {}
+    } catch {
+      // Storage unavailable (private mode) — the reason message is optional
+    }
   }
   if (broadcast && wasActive) channel?.postMessage({ type: 'ended', reason });
   endListeners.forEach((l) => l(reason));
@@ -135,13 +148,17 @@ export function endSession(reason: SessionEndReason, broadcast = true) {
 
 export function onSessionEnded(listener: (reason: SessionEndReason) => void) {
   endListeners.add(listener);
-  return () => endListeners.delete(listener);
+  return () => {
+    endListeners.delete(listener);
+  };
 }
 
 /** Another tab signed in — this tab can pick up the new session from the shared cookie. */
 export function onSessionStartedElsewhere(listener: () => void) {
   startListeners.add(listener);
-  return () => startListeners.delete(listener);
+  return () => {
+    startListeners.delete(listener);
+  };
 }
 
 /** Why the last session ended (shown once on the sign-in page). */
@@ -158,5 +175,7 @@ export function takeEndReason(): SessionEndReason | null {
 function clearEndReason() {
   try {
     sessionStorage.removeItem(REASON_KEY);
-  } catch {}
+  } catch {
+    // Storage unavailable (private mode)
+  }
 }
