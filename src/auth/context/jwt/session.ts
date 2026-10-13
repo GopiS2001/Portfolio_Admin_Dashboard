@@ -84,8 +84,8 @@ export function refreshSession(): Promise<TokenResponse | null> {
       })
       .catch((error) => {
         if (isStatus(error, 401)) {
-          const hadSession = accessToken !== null;
-          endSession(errorCode(error) === 'SESSION_REVOKED' && hadSession ? 'revoked' : 'expired', hadSession);
+          // Only announce an end if this tab was signed in (not on a first visit)
+          if (accessToken !== null) endSession(errorCode(error) === 'SESSION_REVOKED' ? 'revoked' : 'expired');
           return null;
         }
         throw error;
