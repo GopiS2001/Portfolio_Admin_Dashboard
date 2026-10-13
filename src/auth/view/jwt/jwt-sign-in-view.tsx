@@ -18,7 +18,12 @@ import { Form, Field, schemaUtils } from 'src/components/hook-form';
 import { useAuthContext } from '../../hooks';
 import { getErrorMessage } from '../../utils';
 import { FormHead } from '../../components/form-head';
-import { signInWithPassword } from '../../context/jwt';
+import { takeEndReason, signInWithPassword } from '../../context/jwt';
+
+const END_MESSAGES = {
+  expired: 'Your session expired. Please sign in again.',
+  revoked: 'You were signed out (the session was ended from another device or for your security).',
+} as const;
 
 // ----------------------------------------------------------------------
 
