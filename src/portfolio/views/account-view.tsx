@@ -133,7 +133,141 @@ export function AccountView() {
             </CardContent>
           </Card>
         </Grid>
+
+        <Grid size={12}>
+          <SessionsCard />
+        </Grid>
       </Grid>
     </PageShell>
+  );
+}
+
+// ----------------------------------------------------------------------
+
+type SessionRow = {
+  id: string;
+  client: 'dashboard' | 'website' | 'native';
+  userAgent: string;
+  ip: string;
+  createdAt: string;
+  lastUsedAt: string;
+  expiresAt: string;
+  current: boolean;
+};
+
+const CLIENT_LABEL = { dashboard: 'Admin dashboard', website: 'Website', native: 'Mobile app' } as const;
+const CLIENT_ICON = {
+  dashboard: 'solar:monitor-bold',
+  website: 'eva:globe-2-fill',
+  native: 'solar:smartphone-bold',
+} as const;
+
+/** "Chrome on Windows" from a user-agent string (good enough to recognise your devices). */
+function describeDevice(ua: string) {
+  if (!ua) return 'Unknown device';
+  const browser =
+    (/Edg\//.test(ua) && 'Edge') ||
+    (/OPR\//.test(ua) && 'Opera') ||
+    (/Chrome\//.test(ua) && 'Chrome') ||
+    (/Firefox\//.test(ua) && 'Firefox') ||
+    (/Safari\//.test(ua) && 'Safari') ||
+    (/Expo|okhttp|CFNetwork|Dalvik/i.test(ua) && 'App') ||
+    'Browser';
+  const os =
+    (/Windows/.test(ua) && 'Windows') ||
+    (/Android/.test(ua) && 'Android') ||
+    (/iPhone|iPad|iOS/.test(ua) && 'iOS') ||
+    (/Mac OS X|Macintosh/.test(ua) && 'macOS') ||
+    (/Linux/.test(ua) && 'Linux') ||
+    '';
+  return os ? `${browser} on ${os}` : browser;
+}
+
+/** Every signed-in device, with sign-out per device or for all others. */
+function SessionsCard() {
+  const { data, isLoading } = useResource<SessionRow[]>(api.sessions);
+  const sessions = data ?? [];
+  const others = sessions.filter((s) => !s.current).length;
+
+  const revoke = async (session: SessionRow) => {
+    try {
+      await axios.delete(`${api.sessions}/${session.id}`);
+      await mutate(api.sessions);
+      toast.success(`Signed out ${CLIENT_LABEL[session.client]} session`);
+    } catch (error) {
+      toast.error((error as Error).message);
+    }
+  };
+
+  const revokeOthers = async () => {
+    try {
+      const res = await axios.post<{ revoked: number }>(`${api.sessions}/revoke-others`);
+      await mutate(api.sessions);
+      toast.success(`Signed out ${res.data.revoked} other session${res.data.revoked === 1 ? '' : 's'}`);
+    } catch (error) {
+      toast.error((error as Error).message);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader
+        title="Where you're signed in"
+        subheader="Sessions stay active for 7 days after their last use. Sign out any you don't recognise."
+        action={
+          <Button color="error" variant="soft" disabled={!others} onClick={revokeOthers}>
+            Sign out other devices
+          </Button>
+        }
+        sx={{ mb: 2 }}
+      />
+      <Divider />
+      {isLoading && (
+        <Stack spacing={1.5} sx={{ p: 3 }}>
+          {[0, 1].map((i) => (
+            <Skeleton key={i} variant="rounded" height={56} />
+          ))}
+        </Stack>
+      )}
+      <Stack divider={<Divider sx={{ borderStyle: 'dashed' }} />}>
+        {sessions.map((s) => (
+          <Box key={s.id} sx={{ px: 3, py: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box
+              sx={{
+                width: 44,
+                height: 44,
+                flexShrink: 0,
+                borderRadius: 1.5,
+                display: 'grid',
+                placeItems: 'center',
+                bgcolor: 'background.neutral',
+                color: s.current ? 'primary.main' : 'text.secondary',
+              }}
+            >
+              <Iconify icon={CLIENT_ICON[s.client]} width={24} />
+            </Box>
+            <Box sx={{ flex: '1 1 auto', minWidth: 0 }}>
+              <Typography variant="subtitle2" noWrap>
+                {CLIENT_LABEL[s.client]} · {describeDevice(s.userAgent)}
+                {s.current && (
+                  <Label color="success" sx={{ ml: 1 }}>
+                    This device
+                  </Label>
+                )}
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                {s.ip || 'Unknown IP'} · Active {fToNow(s.lastUsedAt)} ago · Signed in{' '}
+                {fDateTime(s.createdAt)}
+              </Typography>
+            </Box>
+            {!s.current && (
+              <Button size="small" color="error" onClick={() => revoke(s)}>
+                Sign out
+              </Button>
+            )}
+          </Box>
+        ))}
+      </Stack>
+    </Card>
   );
 }
