@@ -63,9 +63,18 @@ export function AccountView() {
 
   const savePassword = password.handleSubmit(async ({ currentPassword, newPassword }) => {
     try {
-      await axios.put(api.password, { currentPassword, newPassword });
+      const res = await axios.put<{ signedOutOtherSessions: number }>(api.password, {
+        currentPassword,
+        newPassword,
+      });
       password.reset();
-      toast.success('Password changed');
+      const others = res.data.signedOutOtherSessions;
+      toast.success(
+        others
+          ? `Password changed — signed out ${others} other session${others === 1 ? '' : 's'}`
+          : 'Password changed'
+      );
+      await mutate(api.sessions);
     } catch (error) {
       toast.error((error as Error).message);
     }
