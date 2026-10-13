@@ -1,8 +1,9 @@
-import type { AxiosRequestConfig } from 'axios';
+import type { AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
 
 import axios from 'axios';
 
 import { CONFIG } from 'src/global-config';
+import { refreshSession, getFreshAccessToken } from 'src/auth/context/jwt/session';
 
 // ----------------------------------------------------------------------
 
@@ -13,22 +14,34 @@ const axiosInstance = axios.create({
   },
 });
 
-/**
- * Optional: Add token (if using auth)
- *
- axiosInstance.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+type RetriableConfig = InternalAxiosRequestConfig & { _retried?: boolean };
+
+/** Attach the in-memory access token, refreshing it first when it's about to expire. */
+axiosInstance.interceptors.request.use(async (config) => {
+  const token = await getFreshAccessToken().catch(() => null);
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
-*
-*/
 
 axiosInstance.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    // Access token expired or was refused: refresh once and retry. If the refresh itself
+    // returns 401 the session has ended — refreshSession() signs the app out.
+    const config = error?.config as RetriableConfig | undefined;
+    if (error?.response?.status === 401 && config && !config._retried) {
+      config._retried = true;
+      try {
+        const session = await refreshSession();
+        if (session) {
+          config.headers.Authorization = `Bearer ${session.accessToken}`;
+          return axiosInstance(config);
+        }
+      } catch {
+        // Network error while refreshing — fall through and report the original error
+      }
+    }
+
     // Nest validation errors come back as an array of messages
     const raw = error?.response?.data?.message;
     const message =
