@@ -130,6 +130,12 @@ export function JwtSignInView() {
         sx={{ textAlign: { xs: 'center', md: 'left' } }}
       />
 
+      {!!endReason && !errorMessage && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          {endReason}
+        </Alert>
+      )}
+
       {!!errorMessage && (
         <Alert severity="error" sx={{ mb: 3 }}>
           {errorMessage}
