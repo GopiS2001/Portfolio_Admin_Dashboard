@@ -47,6 +47,11 @@ export function JwtSignInView() {
   const { checkUserSession } = useAuthContext();
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Why the previous session ended (read once, then forgotten)
+  const [endReason] = useState(() => {
+    const reason = takeEndReason();
+    return reason && reason !== 'signed-out' ? END_MESSAGES[reason] : null;
+  });
 
   const defaultValues: SignInSchemaType = {
     email: '',
