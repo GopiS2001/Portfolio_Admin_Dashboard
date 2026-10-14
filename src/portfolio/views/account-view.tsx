@@ -14,8 +14,9 @@ import CardHeader from '@mui/material/CardHeader';
 import Typography from '@mui/material/Typography';
 import CardContent from '@mui/material/CardContent';
 
-import axios from 'src/lib/axios';
 import { fToNow, fDateTime } from 'src/utils/format-time';
+
+import axios from 'src/lib/axios';
 
 import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
@@ -165,8 +166,8 @@ type SessionRow = {
 const CLIENT_LABEL = { dashboard: 'Admin dashboard', website: 'Website', native: 'Mobile app' } as const;
 const CLIENT_ICON = {
   dashboard: 'solar:monitor-bold',
-  website: 'eva:globe-2-fill',
-  native: 'solar:smartphone-bold',
+  website: 'eva:external-link-fill',
+  native: 'solar:smartphone-2-bold',
 } as const;
 
 /** "Chrome on Windows" from a user-agent string (good enough to recognise your devices). */

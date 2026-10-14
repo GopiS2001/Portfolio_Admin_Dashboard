@@ -3,7 +3,8 @@ import type { AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios';
 import axios from 'axios';
 
 import { CONFIG } from 'src/global-config';
-import { refreshSession, getFreshAccessToken } from 'src/auth/context/jwt/session';
+
+import { refreshSession, isSessionEnded, getFreshAccessToken } from 'src/auth/context/jwt/session';
 
 // ----------------------------------------------------------------------
 
@@ -29,7 +30,7 @@ axiosInstance.interceptors.response.use(
     // Access token expired or was refused: refresh once and retry. If the refresh itself
     // returns 401 the session has ended — refreshSession() signs the app out.
     const config = error?.config as RetriableConfig | undefined;
-    if (error?.response?.status === 401 && config && !config._retried) {
+    if (error?.response?.status === 401 && config && !config._retried && !isSessionEnded()) {
       config._retried = true;
       try {
         const session = await refreshSession();
@@ -91,6 +92,7 @@ export const endpoints = {
     uploads: '/api/uploads',
     account: '/api/auth/account',
     password: '/api/auth/password',
+    sessions: '/api/auth/sessions',
   },
   chat: '/api/chat',
   kanban: '/api/kanban',

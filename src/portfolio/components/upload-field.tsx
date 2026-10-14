@@ -12,6 +12,7 @@ import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 
 import { uploadFile } from '../api';
+import { driveImage } from '../drive';
 
 // ----------------------------------------------------------------------
 
@@ -55,7 +56,7 @@ export function UploadField({ name, label, helperText, kind = 'image', accept }:
           {kind === 'image' && (
             <Avatar
               variant="rounded"
-              src={field.value || undefined}
+              src={driveImage(field.value)}
               sx={{ width: 56, height: 56, bgcolor: 'background.neutral' }}
             >
               <Iconify icon="solar:gallery-add-bold" />

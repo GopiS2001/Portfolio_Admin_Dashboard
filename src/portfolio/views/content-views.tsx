@@ -17,6 +17,7 @@ import Avatar from '@mui/material/Avatar';
 import { Label } from 'src/components/label';
 
 import { api } from '../api';
+import { driveImage } from '../drive';
 import { CrudList } from '../components/crud-list';
 import { PageShell } from '../components/page-shell';
 import { SingletonForm } from '../components/singleton-form';
@@ -287,7 +288,7 @@ export function ProjectsContentView() {
           return (
             <Avatar
               variant="rounded"
-              src={p.imageUrl || undefined}
+              src={driveImage(p.imageUrl)}
               sx={{ width: 64, height: 44, background: `linear-gradient(135deg, ${gradient.css})` }}
             >
               {' '}
