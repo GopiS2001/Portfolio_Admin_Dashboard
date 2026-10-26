@@ -30,9 +30,18 @@ import { PageShell } from '../components/page-shell';
 
 // ----------------------------------------------------------------------
 
+// Keep in sync with GENDERS in BACKEND/src/auth/auth.controller.ts
+const GENDERS = [
+  { value: 'male', label: 'Male' },
+  { value: 'female', label: 'Female' },
+  { value: 'other', label: 'Other' },
+] as const;
+
 const AccountSchema = z.object({
   displayName: z.string().trim().min(1, { error: 'Name is required' }),
   email: z.email({ error: 'Enter a valid email' }),
+  phone: z.string().trim().max(30, { error: 'At most 30 characters' }),
+  gender: z.enum(['', ...GENDERS.map((g) => g.value)]),
 });
 
 const PasswordSchema = z
