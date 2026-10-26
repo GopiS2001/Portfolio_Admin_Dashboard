@@ -60,7 +60,12 @@ export function AccountView() {
 
   const account = useForm({
     resolver: zodResolver(AccountSchema),
-    values: { displayName: user?.displayName ?? '', email: user?.email ?? '' },
+    values: {
+      displayName: user?.displayName ?? '',
+      email: user?.email ?? '',
+      phone: user?.phone ?? '',
+      gender: user?.gender ?? '',
+    },
   });
 
   const password = useForm({
