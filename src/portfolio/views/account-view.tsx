@@ -111,16 +111,6 @@ export function AccountView() {
                   <Field.Text name="displayName" label="Name" />
                   <Field.Text name="email" label="Email (login)" />
                   <Field.Text name="phone" label="Phone" type="tel" />
-                  <Field.Select name="gender" label="Gender" slotProps={{ inputLabel: { shrink: true } }}>
-                    <MenuItem value="">
-                      <em>Not set</em>
-                    </MenuItem>
-                    {GENDERS.map((g) => (
-                      <MenuItem key={g.value} value={g.value}>
-                        {g.label}
-                      </MenuItem>
-                    ))}
-                  </Field.Select>
                   <Button
                     type="submit"
                     variant="contained"
