@@ -35,7 +35,6 @@ const AccountSchema = z.object({
   displayName: z.string().trim().min(1, { error: 'Name is required' }),
   email: z.email({ error: 'Enter a valid email' }),
   phone: z.string().trim().max(30, { error: 'At most 30 characters' }),
-  gender: z.enum(['', ...GENDERS.map((g) => g.value)]),
 });
 
 const PasswordSchema = z
