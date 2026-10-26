@@ -57,7 +57,6 @@ export function AccountView() {
       displayName: user?.displayName ?? '',
       email: user?.email ?? '',
       phone: user?.phone ?? '',
-      gender: user?.gender ?? '',
     },
   });
 
